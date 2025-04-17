@@ -8,8 +8,7 @@ from enum import Enum
 from typing import Any, Dict, Optional, Type
 from bson import ObjectId
 
-from util.utilities import generate_hash_cad
-from configs.config import getenv
+from config.config import getenv
 from pymongo import MongoClient
 from util.dataclass import (
     Cadastro,
