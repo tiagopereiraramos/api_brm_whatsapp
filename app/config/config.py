@@ -1,72 +1,69 @@
-import os
-from typing import Optional, Any
 from pydantic_settings import BaseSettings
+from pydantic import Field
+from typing import List, Optional
+import os
 
 
 class Settings(BaseSettings):
     # Ambiente
-    env: str
-    mode: str = "debug"
+    env: str = Field(..., env="ENV")
+    local_mongo_database_dev: str = Field(..., env="LOCAL_MONGO_DATABASE_DEV")
+    local_mongo_database_prod: str = Field(...,
+                                           env="LOCAL_MONGO_DATABASE_PROD")
 
-    # Banco de Dados MongoDB
-    mongo_uri: str
-    local_mongo_database_dev: str
-    local_mongo_database_prod: str
-    collections: str
+    # Mapeamento de coleções para dataclasses
+    collections: str = Field(..., env="COLLECTIONS")
+
+    # Configuração MongoDB
+    mongo_uri: str = Field(..., env="MONGO_URI")
 
     # Configuração MinIO
-    minio_access_key: str
-    minio_secret_key: str
-    bucket_name: str
-    minio_endpoint: str
+    bucket_name: str = Field(..., env="BUCKET_NAME")
+    minio_access_key: str = Field(..., env="MINIO_ACCESS_KEY")
+    minio_endpoint: str = Field(..., env="MINIO_ENDPOINT")
+    minio_secret_key: str = Field(..., env="MINIO_SECRET_KEY")
 
     # Configuração Evolution
-    evolution_base_url: str
-    evolution_api_key: str
-    evolution_api_instance: str
+    evolution_base_url: str = Field(..., env="EVOLUTION_BASE_URL")
+    evolution_api_key: str = Field(..., env="EVOLUTION_API_KEY")
+    evolution_api_instance: str = Field(..., env="EVOLUTION_API_INSTANCE")
 
     # Configuração Coda API
-    coda_api_base_url: str
-    coda_api_token: str
-    coda_document_id: str
+    coda_api_base_url: str = Field(..., env="CODA_API_BASE_URL")
+    coda_api_token: str = Field(..., env="CODA_API_TOKEN")
+    coda_document_id: str = Field(..., env="CODA_DOCUMENT_ID")
 
-    # Configuração do temporal.io
-    celery_broker_url: str
-    celery_result_backend: str
-    # Credenciais do Google
-    credentials_google: Optional[str] = None
-    token_google: Optional[str] = None
+    # Configuração Celery
+    celery_broker_url: str = Field(..., env="CELERY_BROKER_URL")
+    celery_result_backend: str = Field(..., env="CELERY_RESULT_BACKEND")
 
-    # Scopes do Google
-    scopes: str
-
-    class Config:
-        env_file = ".env"
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+    }
 
 
-# Instância única (singleton) para ser usada em todo o projeto
 settings = Settings()
 
 
-def getenv(key: str, default: Any = None) -> Any:
+def getenv(key: str, default: Optional[str] = None) -> Optional[str]:
     """
-    Recupera o valor de uma variável de ambiente ou do arquivo .env.
-
-    :param key: Nome da variável de ambiente.
-    :param default: Valor padrão caso a variável não esteja definida.
-    :return: Valor da variável de ambiente ou valor padrão.
+    Função auxiliar para manter compatibilidade com o legado.
+    Busca a chave no Pydantic Settings primeiro, depois tenta no os.environ.
     """
-    normalized_key = key.lower()  # Converte para minúsculas
-    print(f"Buscando chave normalizada: {normalized_key}")  # Debug
+    normalized_key = key.lower().strip()
 
-    # Primeiro tenta pegar do objeto `settings` (carregado pelo Pydantic)
-    if hasattr(settings, normalized_key):
-        value = getattr(settings, normalized_key)
-        print(f"Valor encontrado em settings: {value}")  # Debug
-        if value is not None and value != "":
-            return value
+    # Busca direto em Settings usando __dict__ para debug e flexibilidade
+    value = getattr(settings, normalized_key, None)
+    if value is not None:
+        print(
+            f"[Settings] {key} = {value if 'key' not in key.lower() else '***'}"
+        )
+        return value
 
-    # Em seguida tenta pegar da variável de ambiente diretamente
-    env_value = os.getenv(key, default)
-    print(f"Valor encontrado em os.getenv: {env_value}")  # Debug
-    return env_value
+    # Fallback para os.environ, com debug
+    fallback = os.getenv(key, default)
+    print(
+        f"[os.environ] {key} = {fallback if 'key' not in key.lower() else '***'}"
+    )
+    return fallback
