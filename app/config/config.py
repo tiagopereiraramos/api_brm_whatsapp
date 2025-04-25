@@ -1,56 +1,72 @@
 import os
-from typing import Optional
-
+from typing import Optional, Any
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     # Ambiente
     env: str
-    mode: str
+    mode: str = "debug"
+
+    # Banco de Dados MongoDB
     mongo_uri: str
     local_mongo_database_dev: str
     local_mongo_database_prod: str
     collections: str
-    mode: str = "debug"
-    # Planilha de dados
-    dados_acesso: str = ""
 
-    script_path: Optional[str] = ""
-    python_path: Optional[str] = ""
-    # Dados de acesso SAT
-    login: str
-    senha: str
-    urlsat: str
-
-    # MinIO
-    minio_endpoint: str
+    # Configuração MinIO
     minio_access_key: str
     minio_secret_key: str
     bucket_name: str
+    minio_endpoint: str
 
-    # Coda
+    # Configuração Evolution
+    evolution_base_url: str
+    evolution_api_key: str
+    evolution_api_instance: str
+
+    # Configuração Coda API
     coda_api_base_url: str
     coda_api_token: str
     coda_document_id: str
 
-    credentials_google: str
-    token_google: str
-    rabbitmq_url: str
-    scopes:str
+    # Configuração do temporal.io
+    celery_broker_url: str
+    celery_result_backend: str
+    # Credenciais do Google
+    credentials_google: Optional[str] = None
+    token_google: Optional[str] = None
+
+    # Scopes do Google
+    scopes: str
 
     class Config:
-        env_file = ".env"  # Configura o caminho para o arquivo .env
+        env_file = ".env"
 
 
-# Criar uma instância única (singleton) para ser usada em todo o projeto
+# Instância única (singleton) para ser usada em todo o projeto
 settings = Settings()
 
 
-# Função compatível com os.getenv
-def getenv(key: str, default=None):
-    # Primeiro, tenta pegar a variável do Pydantic (settings)
-    try:
-        return getattr(settings, key, os.getenv(key, default))
-    except AttributeError:
-        return getenv(key, default)
+def getenv(key: str, default: Any = None) -> Any:
+    """
+    Recupera o valor de uma variável de ambiente ou do arquivo .env.
+
+    :param key: Nome da variável de ambiente.
+    :param default: Valor padrão caso a variável não esteja definida.
+    :return: Valor da variável de ambiente ou valor padrão.
+    """
+    normalized_key = key.lower()  # Converte para minúsculas
+    print(f"Buscando chave normalizada: {normalized_key}")  # Debug
+
+    # Primeiro tenta pegar do objeto `settings` (carregado pelo Pydantic)
+    if hasattr(settings, normalized_key):
+        value = getattr(settings, normalized_key)
+        print(f"Valor encontrado em settings: {value}")  # Debug
+        if value is not None and value != "":
+            return value
+
+    # Em seguida tenta pegar da variável de ambiente diretamente
+    env_value = os.getenv(key, default)
+    print(f"Valor encontrado em os.getenv: {env_value}")  # Debug
+    return env_value

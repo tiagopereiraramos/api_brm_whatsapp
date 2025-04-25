@@ -1,22 +1,23 @@
 [project]
 name = "api-brm-whatsapp"
-version = "1.0"
-description = "Api para comunicação de automação via API com o Whatsapp (Evolution ou Oficial)"
-authors = [
-    {name = "Tiago Pereira Ramos",email = "tiago@brmsolutions.com.br"}
-]
+version = "0.1.0"
+description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13,<4.0"
+requires-python = ">=3.13"
 dependencies = [
-    "pymongo (>=4.12.0,<5.0.0)",
-    "fastapi (>=0.115.12,<0.116.0)",
-    "pika (>=1.3.2,<2.0.0)",
-    "requests (>=2.32.3,<3.0.0)",
-    "pydantic-settings (>=2.8.1,<3.0.0)",
-    "loguru (>=0.7.3,<0.8.0)"
+    "black>=25.1.0",
+    "celery>=5.5.1",
+    "fastapi>=0.115.12",
+    "flower>=2.0.1",
+    "isort>=6.0.1",
+    "loguru>=0.7.3",
+    "motor>=3.7.0",
+    "pydantic-settings>=2.9.1",
+    "redis>=5.2.1",
+    "requests>=2.32.3",
+    "temporalio>=1.11.0",
+    "uvicorn>=0.34.2",
 ]
-
-
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.black]
+line-length = 100
+target-version = ['py39']

@@ -1,10 +1,61 @@
-import importlib
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from enum import Enum
 import time
-from dotenv import load_dotenv
-from loguru import logger
-from app.models.dataclass import Log, LogLevel  # Certifique-se de que o caminho está correto
+from typing import Any, Dict, Optional
 
-load_dotenv()
+from pydantic import BaseModel
+from loguru import logger
+from app.core.mongo import AsyncDatabase
+
+
+# ---------- ENUMS ----------
+class LogLevel(Enum):
+    INFO = "INFO"
+    ERROR = "ERROR"
+    WARNING = "WARNING"
+    DEBUG = "DEBUG"
+    CRITICAL = "CRITICAL"
+
+# Log dataclass
+
+
+class Log(BaseModel):
+    _id: Optional[str] = field(default=None, init=False)
+    level: Optional[LogLevel] = None
+    time: Optional[datetime] = None
+    message: Optional[str] = None
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> "Log":
+        try:
+            return Log(
+                level=LogLevel(data["level"]) if data.get("level") else None,
+                time=(
+                    datetime.fromisoformat(
+                        data["time"]) if data.get("time") else None
+                ),
+                message=data.get("message"),
+            )
+        except Exception as e:
+            print(f"Erro ao converter dicionário para Log: {e}")
+            return None
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = asdict(self)  # Converte a dataclass para um dicionário
+        data = {
+            k: v for k, v in data.items() if v is not None
+        }  # Remove os valores None
+
+        # Converte o nível (LogLevel) para string, se necessário
+        if "level" in data and isinstance(data["level"], Enum):
+            data["level"] = data["level"].value
+
+        # Converte o tempo (datetime) para ISO 8601, se necessário
+        if "time" in data and isinstance(data["time"], datetime):
+            data["time"] = data["time"].isoformat()
+
+        return data
 
 
 class Logs:
@@ -16,15 +67,15 @@ class Logs:
         pass  # O __init__ fica vazio
 
     @staticmethod
-    def return_log(name, cron_id=None, session_id=None):
+    def return_log(name):
         """
         Retorna uma instância de log configurada, incluindo cron_id e session_id se fornecidos.
         Faz a configuração do logger e testa a conexão com o MongoDB.
         """
-        Database = importlib.import_module("app.core.db.mongo").Database  # Ajuste o caminho para o módulo correto
+        # Ajuste o caminho para o módulo correto
 
         # Configura o MongoDB e testa a conexão uma vez
-        db = Database()
+        db = AsyncDatabase()
 
         # Remove handlers padrões para evitar duplicação
         logger.remove()
@@ -39,7 +90,7 @@ class Logs:
         )
 
         # Retorna o logger configurado com os valores bindados (cron_id e session_id)
-        return logger.bind(name=name, cron_id=cron_id, session_id=session_id)
+        return logger.bind(name=name)
 
     @staticmethod
     def log_handler(db):
@@ -52,8 +103,7 @@ class Logs:
             # Grava no MongoDB apenas se o nível for INFO ou superior
             if message.record["level"].no >= logger.level("INFO").no:
                 log = Log(
-                    cron_id=message.record["extra"].get("cron_id"),
-                    session_id=message.record["extra"].get("session_id"),
+
                     level=LogLevel(
                         message.record["level"].name
                     ),  # Garantir que seja enum
