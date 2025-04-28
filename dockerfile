@@ -1,5 +1,5 @@
 # Etapa base com Python 3.13 em imagem leve
-FROM python:3.13-slim-bullseye as base
+FROM python:3.11-slim-bullseye AS base
 
 # Instala dependências do sistema necessárias para build de pacotes Python
 RUN apt-get update && apt-get install -y \
